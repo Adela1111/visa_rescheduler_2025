@@ -3,7 +3,7 @@
 import time
 import json
 import random
-import platform
+import re
 import configparser
 from datetime import datetime
 
@@ -44,13 +44,15 @@ def MY_CONDITION(month, day): return True # No custom condition wanted for the n
 
 STEP_TIME = 0.5  # time between steps (interactions with forms): 0.5 seconds
 RETRY_TIME = 60*10  # wait time between retries/checks for available dates: 10 minutes
-EXCEPTION_TIME = 60*30  # wait time when an exception occurs: 30 minutes
+EXCEPTION_TIME = 60*10  # wait time when an exception occurs: 30 minutes
 COOLDOWN_TIME = 60*60  # wait time when temporary banned (empty list): 60 minutes
 
 DATE_URL = f"https://ais.usvisa-info.com/{COUNTRY_CODE}/niv/schedule/{SCHEDULE_ID}/appointment/days/{FACILITY_ID}.json?appointments[expedite]=false"
 TIME_URL = f"https://ais.usvisa-info.com/{COUNTRY_CODE}/niv/schedule/{SCHEDULE_ID}/appointment/times/{FACILITY_ID}.json?date=%s&appointments[expedite]=false"
 APPOINTMENT_URL = f"https://ais.usvisa-info.com/{COUNTRY_CODE}/niv/schedule/{SCHEDULE_ID}/appointment"
+UNLOG_URL = f"https://ais.usvisa-info.com/{COUNTRY_CODE}/niv/schedule/users/sign_out"
 EXIT = False
+print(DATE_URL)
 
 
 def send_notification(msg):
@@ -140,16 +142,42 @@ def do_login_action():
     print("\tlogin successful!")
 
 
-def get_date():
-    driver.get(DATE_URL)
-    if not is_logged_in():
-        login()
-        return get_date()
-    else:
-        content = driver.find_element(By.TAG_NAME, 'pre').text
-        date = json.loads(content)
-        return date
+def unlog():
+    print("\tunlog")
+    driver.get(UNLOG_URL)
+    time.sleep(random.randint(1, 3))
 
+
+def parse_curl(curl_command):
+    # Extract the endpoint (URL after `curl '`)
+    endpoint_match = re.search(r"curl\s+'([^']+)'", curl_command)
+    endpoint = endpoint_match.group(1) if endpoint_match else None
+
+    # Extract headers (lines with `-H 'Header-Name: Header-Value'`)
+    headers = {}
+    header_matches = re.findall(r"-H\s+'([^:]+):\s*([^']+)'", curl_command)
+    for name, value in header_matches:
+        headers[name] = value
+
+    return {"endpoint": endpoint, "headers": headers}
+
+
+def get_date():
+    import requests
+    with open('curl.txt','r', encoding='utf-8') as file:
+        curl = file.read()
+        curl = parse_curl(curl)
+        curl['headers']['Cookie'] = "_yatri_session=" + driver.get_cookie("_yatri_session")["value"]
+    response = requests.get(curl['endpoint'], headers=curl['headers'])
+    if response.status_code != 200:
+        unlog()
+        login()
+        get_date()
+    dates = response.json()
+    return dates[:5]
+
+
+        
 
 def get_time(date):
     time_url = TIME_URL % date
@@ -195,10 +223,10 @@ def reschedule(date):
 
 
 def is_logged_in():
-    content = driver.page_source
-    if(content.find("error") != -1):
-        return False
-    return True
+    cookies = driver.get_cookies()
+    expiry = driver.get_cookie("_yatri_session")["expiry"]
+    current = time.time()
+    return expiry < current
 
 
 def print_dates(dates):
@@ -275,7 +303,8 @@ if __name__ == "__main__":
             else:
               time.sleep(RETRY_TIME)
 
-        except:
+        except Exception as e:
+            print(e)
             retry_count += 1
             time.sleep(EXCEPTION_TIME)
 
