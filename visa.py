@@ -6,6 +6,7 @@ import random
 import re
 import configparser
 from datetime import datetime
+import traceback
 
 import requests
 from selenium import webdriver
@@ -43,14 +44,14 @@ REGEX_CONTINUE = "//a[contains(text(),'Continuar')]"
 def MY_CONDITION(month, day): return True # No custom condition wanted for the new scheduled date
 
 STEP_TIME = 0.5  # time between steps (interactions with forms): 0.5 seconds
-RETRY_TIME = 60*10  # wait time between retries/checks for available dates: 10 minutes
-EXCEPTION_TIME = 60*10  # wait time when an exception occurs: 30 minutes
+RETRY_TIME = 60*5  # wait time between retries/checks for available dates: 10 minutes
+EXCEPTION_TIME = 60*30  # wait time when an exception occurs: 30 minutes
 COOLDOWN_TIME = 60*60  # wait time when temporary banned (empty list): 60 minutes
 
 DATE_URL = f"https://ais.usvisa-info.com/{COUNTRY_CODE}/niv/schedule/{SCHEDULE_ID}/appointment/days/{FACILITY_ID}.json?appointments[expedite]=false"
 TIME_URL = f"https://ais.usvisa-info.com/{COUNTRY_CODE}/niv/schedule/{SCHEDULE_ID}/appointment/times/{FACILITY_ID}.json?date=%s&appointments[expedite]=false"
 APPOINTMENT_URL = f"https://ais.usvisa-info.com/{COUNTRY_CODE}/niv/schedule/{SCHEDULE_ID}/appointment"
-UNLOG_URL = f"https://ais.usvisa-info.com/{COUNTRY_CODE}/niv/schedule/users/sign_out"
+UNLOG_URL = f"https://ais.usvisa-info.com/{COUNTRY_CODE}/niv/users/sign_out"
 EXIT = False
 print(DATE_URL)
 
@@ -163,47 +164,91 @@ def parse_curl(curl_command):
 
 
 def get_date():
-    import requests
-    with open('curl.txt','r', encoding='utf-8') as file:
-        curl = file.read()
-        curl = parse_curl(curl)
-        curl['headers']['Cookie'] = "_yatri_session=" + driver.get_cookie("_yatri_session")["value"]
-    response = requests.get(curl['endpoint'], headers=curl['headers'])
-    if response.status_code != 200:
+    try:
+        with open('curl_date.txt','r', encoding='utf-8') as file:
+            curl = file.read()
+            curl = parse_curl(curl)
+            curl['headers']['Cookie'] = "_yatri_session=" + driver.get_cookie("_yatri_session")["value"]
+        response = requests.get(curl['endpoint'], headers=curl['headers'])
+        dates = response.json()
+        print(dates)
+        if response.status_code != 200 or not isinstance(dates, list):
+            unlog()
+            login()
+            dates = get_date()
+        return dates
+    except Exception:
+        print(traceback.format_exc())
         unlog()
         login()
-        get_date()
-    dates = response.json()
-    return dates[:5]
+        return get_date()
+    
+
 
 
         
 
 def get_time(date):
-    time_url = TIME_URL % date
-    driver.get(time_url)
-    content = driver.find_element(By.TAG_NAME, 'pre').text
-    data = json.loads(content)
-    time = data.get("available_times")[-1]
-    print(f"Got time successfully! {date} {time}")
-    return time
+    with open('curl_time.txt','r', encoding='utf-8') as file:
+        curl = file.read()
+        curl = parse_curl(curl)
+        curl['headers']['Cookie'] = "_yatri_session=" + driver.get_cookie("_yatri_session")["value"]
+        curl['endpoint'] += date
+    response = requests.get(curl['endpoint'], headers=curl['headers'])
+    times = response.json()['available_times']
+    print(f"Times Available {times}")
+    if len(times) > 0:
+        return times[-1]
+    
+
+def get_date_cas(date, time):
+    with open('curl_cas_date.txt','r', encoding='utf-8') as file:
+        curl = file.read()
+        curl = parse_curl(curl)
+        curl['headers']['Cookie'] = "_yatri_session=" + driver.get_cookie("_yatri_session")["value"]
+        curl['endpoint'] += f"consulate_id={FACILITY_ID}&consulate_date={date}1&consulate_time={time}"
+    response = requests.get(curl['endpoint'], headers=curl['headers'])
+    date = response.json()
+    return date[0]['date']
+        
+
+def get_time_cas(cas_date, date, time):
+    with open('curl_cas_time.txt','r', encoding='utf-8') as file:
+        curl = file.read()
+        curl = parse_curl(curl)
+        curl['headers']['Cookie'] = "_yatri_session=" + driver.get_cookie("_yatri_session")["value"]
+        curl['endpoint'] += f"date={cas_date}&consulate_id={FACILITY_ID}&consulate_date={date}&consulate_time={time}"
+    response = requests.get(curl['endpoint'], headers=curl['headers'])
+    times = response.json()['available_times']
+    if len(times) > 0:
+        return times[-1]
+    
+        
 
 
 def reschedule(date):
     global EXIT
     print(f"Starting Reschedule ({date})")
+    time_ = get_time(date)
 
-    time = get_time(date)
+    cas_date = get_date_cas(date, time_)
+    cas_time = get_time_cas(cas_date, date, time_)
     driver.get(APPOINTMENT_URL)
+    print("\tcommit")
+    btn = driver.find_element(By.NAME, 'commit')
+    btn.click()
+    time.sleep(random.randint(1, 3))
 
     data = {
-        "utf8": driver.find_element(by=By.NAME, value='utf8').get_attribute('value'),
         "authenticity_token": driver.find_element(by=By.NAME, value='authenticity_token').get_attribute('value'),
         "confirmed_limit_message": driver.find_element(by=By.NAME, value='confirmed_limit_message').get_attribute('value'),
         "use_consulate_appointment_capacity": driver.find_element(by=By.NAME, value='use_consulate_appointment_capacity').get_attribute('value'),
         "appointments[consulate_appointment][facility_id]": FACILITY_ID,
         "appointments[consulate_appointment][date]": date,
-        "appointments[consulate_appointment][time]": time,
+        "appointments[consulate_appointment][time]": time_,
+        "appointments[asc_appointment][facility_id]": 26,
+        "appointments[asc_appointment][date]": cas_date,
+        "appointments[asc_appointment][time]": cas_time,
     }
 
     headers = {
@@ -288,6 +333,8 @@ if __name__ == "__main__":
             print()
             print(f"New date: {date}")
             if date:
+                msg = "Date found:"
+                send_notification(msg)
                 reschedule(date)
                 push_notification(dates)
 
@@ -301,12 +348,15 @@ if __name__ == "__main__":
               #EXIT = True
               time.sleep(COOLDOWN_TIME)
             else:
-              time.sleep(RETRY_TIME)
+              if random.random() < 0.8:
+                jitter = random.random() * RETRY_TIME
+                time.sleep(RETRY_TIME + jitter)
+              else:
+                  time.sleep(COOLDOWN_TIME)
 
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(traceback.format_exc())
             retry_count += 1
-            time.sleep(EXCEPTION_TIME)
 
     if(not EXIT):
         send_notification("HELP! Crashed.")

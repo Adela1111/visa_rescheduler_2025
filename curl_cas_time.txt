@@ -1,0 +1,15 @@
+curl 'https://ais.usvisa-info.com/es-co/niv/schedule/65343301/appointment/times/26.json?appointments\[expedite\]=false&' \
+  -H 'Accept: application/json, text/javascript, */*; q=0.01' \
+  -H 'Accept-Language: en-US,en;q=0.9' \
+  -H 'Connection: keep-alive' \
+  -H 'Cookie: _gid=GA1.2.1624866342.1738641168; _ga=GA1.2.1727508061.1738641168; _ga_CSLL4ZEK4L=GS1.1.1738641167.1.1.1738641181.0.0.0; _ga_W1JNKHTW0Y=GS1.2.1738641168.1.1.1738641194.0.0.0; _yatri_session=j1ntL3k7GFikgwWIb647GRy7LAcOlBwpOBXzDZtfSHnzzzVvWm1BaUQqfq27ePv9iOatynBMV4Pkgouz3J9S%2BbvBkBOcYvO580ZOytTGqT76SdLE0GWj98wfucCu4OK8%2Ba3k2UXPeq9H4zYz%2F8x%2BFOfZJZYb6wgIfFEmVAgINsq3RWwu5oJ%2F3oqR7SsaiaOYrNlegBboCPMZHYxH9kmR74UTKZQplZ1W%2FDkQF4hgRMI50O1U5ZtznUwHeEasKSfOPWez4iliz%2B4InA01EdbyB%2FQzuhxQcRpXQSYDEwxUrvwyKuT1LgCobhmZhQ%2BEOXXCOA1VHAwRjVY2I3sZCqkpT6EdSxjo0AotgeiUvrHl953hVRJzXDexlUqft9YdPRmwND7ZugA6HTxrUCowxtHi3FqJtzyVDfapwLR9jJ8ZAIIKqRV8dWYfKK9QVfX26OijRf3Y2wyjntw9zZ0ZkmpYW%2Fa5wQPORD8l8yykwzcKNF5ilGKWC1PkTIkSU3XPTFH73NOYKwGy6BZvq1gA4RFINIt5YjfuM3fXMSstrztMfsCh%2BTWflpU0Es6NGfXVaMIFrBSYqTfrUcKxAgFIu6LgOJQSo00NLnVQL12zisRvPrOig1Cd8DoVD7GPp1Ckp8vLtkkahagE4uVGVQGLms0X3SKdPOIu2DxNbxZLDzjEQgf%2BdBNEfXeOREWr%2FweLhZD%2FKmxRF0SjEqaSUdpaP4Fm%2BueVbEsBOKyo97ebObyqiPq8D%2FqKnjcg3s%2F0j16okic%2FC7FJ9jbtalB%2Fh7jqLWiETfeISy0F%2BTb3ooPSY3kKxMixdCjW7HXw28tIcMeJew%3D%3D--qhC%2BIYE1S4m2ECyj--xY2RFFMQF2Lv%2F2wZhgj9Uw%3D%3D' \
+  -H 'Referer: https://ais.usvisa-info.com/es-co/niv/schedule/65343301/appointment?applicants%5B%5D=77406107&applicants%5B%5D=77406191&confirmed_limit_message=1&commit=Continuar' \
+  -H 'Sec-Fetch-Dest: empty' \
+  -H 'Sec-Fetch-Mode: cors' \
+  -H 'Sec-Fetch-Site: same-origin' \
+  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36' \
+  -H 'X-CSRF-Token: rrnnCoZHclew/y2NP0EO/pp3KDt6zeJTczmbWkxATjwTy9ZE6lqM+TvEx4hVhaIs7zz8o6pi8i+ISCqo6SjDrA==' \
+  -H 'X-Requested-With: XMLHttpRequest' \
+  -H 'sec-ch-ua: "Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Windows"'
